@@ -23,17 +23,31 @@ export class PageLibrary extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    // Watch state for the moment config becomes available, then auto-fill
+    // the folder field once and refresh. We don't unsubscribe early —
+    // the previous setTimeout that called this._unsub() twice was a bug
+    // that prevented the library page from ever updating.
     this._unsub = subscribe(() => {
       if (!this._folder) {
         const cfg = getState().config;
         if (cfg?.default_output_folder) {
           this._folder = cfg.default_output_folder;
           this._refresh();
+          this.requestUpdate();
         }
       }
+      this.requestUpdate();
     });
-    // Trigger initial subscribe-fired callback in case config is already loaded.
-    setTimeout(() => this._unsub && this._unsub() && this._unsub(), 0);
+    // If config already loaded before this page mounted, apply now.
+    const cfg = getState().config;
+    if (cfg?.default_output_folder && !this._folder) {
+      this._folder = cfg.default_output_folder;
+      this._refresh();
+    }
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this._unsub?.();
   }
 
   async _refresh() {

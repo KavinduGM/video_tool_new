@@ -51,9 +51,24 @@ export class PageNewJob extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this._unsub = subscribe(() => this.requestUpdate());
-    // Prefill defaults from config once it loads.
-    this._applyConfigDefaults();
+    // Apply config defaults exactly once, the first time config is
+    // available. Doing this in `updated()` was wrong — it fired on every
+    // render and re-applied the same defaults (even when nothing actually
+    // changed), which set `changed=true` and triggered another render.
+    // Result: infinite render loop, page-unresponsive.
+    this._defaultsApplied = false;
+    this._unsub = subscribe(() => {
+      if (!this._defaultsApplied && getState().config) {
+        this._defaultsApplied = true;
+        this._applyConfigDefaults();
+      }
+      this.requestUpdate();
+    });
+    // If state was already loaded before this page mounted, apply now.
+    if (!this._defaultsApplied && getState().config) {
+      this._defaultsApplied = true;
+      this._applyConfigDefaults();
+    }
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -63,26 +78,31 @@ export class PageNewJob extends LitElement {
   _applyConfigDefaults() {
     const cfg = getState().config;
     if (!cfg) return;
-    let changed = false;
-    if (!this._form.output_folder && cfg.default_output_folder) {
-      this._form.output_folder = cfg.default_output_folder; changed = true;
+    // Build a new _form object by copying current values then overlaying
+    // config defaults — but ONLY where a meaningful change would happen.
+    // Comparing before assigning prevents the no-op-then-requestUpdate loop.
+    const next = { ...this._form };
+    let dirty = false;
+    if (!next.output_folder && cfg.default_output_folder) {
+      next.output_folder = cfg.default_output_folder;
+      dirty = true;
     }
-    if (cfg.default_style_key) {
-      this._form.style_key = cfg.default_style_key; changed = true;
+    if (cfg.default_style_key && next.style_key !== cfg.default_style_key) {
+      next.style_key = cfg.default_style_key;
+      dirty = true;
     }
-    if (cfg.default_canvas_key) {
-      this._form.canvas_key = cfg.default_canvas_key; changed = true;
+    if (cfg.default_canvas_key && next.canvas_key !== cfg.default_canvas_key) {
+      next.canvas_key = cfg.default_canvas_key;
+      dirty = true;
     }
-    if (!this._form.voice_profile_id && cfg.default_voice_profile_id) {
-      this._form.voice_profile_id = cfg.default_voice_profile_id; changed = true;
+    if (!next.voice_profile_id && cfg.default_voice_profile_id) {
+      next.voice_profile_id = cfg.default_voice_profile_id;
+      dirty = true;
     }
-    if (changed) this.requestUpdate();
-  }
-
-  updated(changed) {
-    // When config loads after first render, re-apply defaults.
-    if (!this._form.output_folder || !this._form.voice_profile_id) {
-      this._applyConfigDefaults();
+    if (dirty) {
+      // Assigning the property (not mutating in place) triggers Lit's
+      // reactive update naturally — no manual requestUpdate needed.
+      this._form = next;
     }
   }
 
