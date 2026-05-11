@@ -19,6 +19,24 @@ from .models import ScriptFormat, Style
 from .hyperframes import CanvasSize
 
 
+def _create_message_with_fallback(client: Anthropic, kwargs: dict):
+    """Call client.messages.create(**kwargs), but if the SDK doesn't
+    recognise the `thinking` keyword (older versions pre-extended-thinking),
+    drop it and retry. Lets the same code run against a range of SDK
+    versions instead of blowing up with TypeError at request time.
+
+    Any error that isn't an SDK-version mismatch is re-raised unchanged.
+    """
+    try:
+        return client.messages.create(**kwargs)
+    except TypeError as e:
+        msg = str(e)
+        if "thinking" in msg and "thinking" in kwargs:
+            kwargs.pop("thinking", None)
+            return client.messages.create(**kwargs)
+        raise
+
+
 # ─── normalization ────────────────────────────────────────────────────────
 
 
@@ -92,7 +110,7 @@ def normalize_script(
         kwargs["thinking"] = {"type": "enabled", "budget_tokens": 3000}
 
     client = Anthropic(api_key=anthropic_api_key)
-    resp = client.messages.create(**kwargs)
+    resp = _create_message_with_fallback(client, kwargs)
     text = "".join(b.text for b in resp.content if b.type == "text").strip()
     text = _strip_code_fences(text)
 
@@ -239,7 +257,7 @@ def generate_scene_html(
         kwargs["thinking"] = {"type": "enabled", "budget_tokens": 4000}
 
     client = Anthropic(api_key=anthropic_api_key)
-    resp = client.messages.create(**kwargs)
+    resp = _create_message_with_fallback(client, kwargs)
     text = "".join(b.text for b in resp.content if b.type == "text").strip()
     return _split_body_and_timeline(text)
 
