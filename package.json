@@ -1,0 +1,13 @@
+{
+  "name": "video-generator-v2",
+  "private": true,
+  "version": "2.0.0",
+  "description": "HyperFrames-based multi-style video generator. Backend runs hyperframes via npx.",
+  "dependencies": {
+    "hyperframes": "^0.5.7"
+  },
+  "scripts": {
+    "hyperframes:version": "npx hyperframes --version",
+    "hyperframes:outdated": "npm outdated hyperframes || true"
+  }
+}

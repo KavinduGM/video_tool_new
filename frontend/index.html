@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video Generator</title>
+
+  <!-- Tailwind from CDN — no build step needed. We configure it inline. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <!-- Inter from Google Fonts for that modern app look. -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- Lit + reactive primitives via importmap so app code can `import { LitElement, html } from 'lit'` cleanly. -->
+  <script type="importmap">
+  {
+    "imports": {
+      "lit": "https://esm.run/lit@3.2.0",
+      "lit/decorators.js": "https://esm.run/lit@3.2.0/decorators.js",
+      "lit/directives/repeat.js": "https://esm.run/lit@3.2.0/directives/repeat.js",
+      "lit/directives/class-map.js": "https://esm.run/lit@3.2.0/directives/class-map.js",
+      "lit/directives/until.js": "https://esm.run/lit@3.2.0/directives/until.js"
+    }
+  }
+  </script>
+
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen">
+  <app-root></app-root>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

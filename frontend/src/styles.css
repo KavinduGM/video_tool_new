@@ -1,0 +1,69 @@
+/* Custom CSS layered on top of Tailwind utilities. */
+
+/* Smooth scrollbar in dark mode. */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(9 9 11);
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(63 63 70);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(82 82 91);
+}
+
+/* Lit components inherit body styles by default — make sure they do. */
+:root,
+app-root,
+app-root *,
+app-sidebar,
+app-page-dashboard,
+app-page-new-job,
+app-page-queue,
+app-page-library,
+app-page-settings,
+app-page-styles {
+  color: inherit;
+  font-family: inherit;
+}
+
+/* Subtle focus ring on interactive elements. */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgb(99 102 241);
+  outline-offset: 1px;
+}
+
+/* Loading shimmer animation. */
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0; }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgb(39 39 42) 0%,
+    rgb(63 63 70) 50%,
+    rgb(39 39 42) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Spinner. */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  border-top-color: rgb(99 102 241);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}

@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+
+# Node
+node_modules/
+package-lock.json
+
+# Runtime / transient
+backend/workspace/
+backend/config/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets / local state
+.env
+.env.local
+*.key
+
+# Build outputs
+dist/
+build/
+*.log
