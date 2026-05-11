@@ -34,8 +34,27 @@ export class PageSettings extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._unsub = subscribe(() => {
-      if (!this._draft && getState().config) {
-        this._draft = JSON.parse(JSON.stringify(getState().config));
+      const stateCfg = getState().config;
+      if (!this._draft && stateCfg) {
+        // First time config is available — clone it as the editable draft.
+        this._draft = JSON.parse(JSON.stringify(stateCfg));
+      } else if (this._draft && stateCfg) {
+        // After add/remove of a voice profile or custom style, the server
+        // state changes via dedicated endpoints (NOT via the bulk PUT
+        // /api/config that "Save settings" uses). So those collections must
+        // always mirror the server — otherwise the rendered list would
+        // be stale, AND clicking "Save settings" would PUT a stale list
+        // back and silently wipe the just-added profile.
+        //
+        // We deliberately do NOT touch the user's pending edits to the
+        // top-level fields (anthropic_api_key, default_output_folder, …) —
+        // those live in _draft until they click Save.
+        this._draft.voice_profiles = JSON.parse(
+          JSON.stringify(stateCfg.voice_profiles || []),
+        );
+        this._draft.custom_styles = JSON.parse(
+          JSON.stringify(stateCfg.custom_styles || []),
+        );
       }
       this.requestUpdate();
     });
