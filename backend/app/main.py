@@ -237,6 +237,34 @@ def delete_job(job_id: str) -> dict:
 # ─── library: list mp4s in an output folder ───────────────────────────────
 
 
+@app.post("/api/dialog/pick-folder")
+def pick_folder() -> dict:
+    """Open the native OS folder picker (tkinter). Blocks the API thread
+    until the user picks or cancels — fine because uvicorn is multi-worker
+    and this app has one human user.
+
+    Returns: {"path": "<chosen path>"} or {"path": null} on cancel.
+
+    On Windows this shows the standard Explorer folder browser. On macOS
+    it shows the native AppleScript folder chooser. On headless Linux
+    where tkinter has no display, raises 500 with a clear message.
+    """
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as e:
+        raise HTTPException(500, f"tkinter unavailable: {e}")
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.wm_attributes("-topmost", 1)
+        folder = filedialog.askdirectory(title="Select output folder")
+        root.destroy()
+        return {"path": folder or None}
+    except Exception as e:
+        raise HTTPException(500, f"Folder picker error: {e}")
+
+
 @app.get("/api/files/output")
 def list_output(folder: str) -> dict:
     p = Path(folder).expanduser()

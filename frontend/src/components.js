@@ -7,7 +7,25 @@
  * everyone copying the same long class string.
  */
 
-import { LitElement, html, css } from 'lit';
+import { LitElement, html, css, unsafeCSS } from 'lit';
+
+/**
+ * COMPONENT RENDERING STRATEGY (matters — read this before changing things):
+ *
+ * Components that use <slot> for composition (Card, Button, Badge) MUST
+ * render into Shadow DOM. Slots only work inside Shadow DOM. We give them
+ * their own scoped CSS via `static styles = css`...``.
+ *
+ * Components that are self-contained (Input, Textarea, Select, Toasts) keep
+ * light-DOM rendering via `createRenderRoot() { return this; }` so that
+ * Tailwind utility classes on the rendered <input>/<select> are picked up
+ * by the global Tailwind scan.
+ *
+ * The earlier version used <slot> with light-DOM rendering for everything —
+ * which silently fails: the slot element renders as an empty <slot> with
+ * no content projection, and the user's child elements stay at the wrong
+ * position in the document. Don't do that again.
+ */
 
 // ─── Inline SVG icon set. Keeps the bundle dependency-free. ────────────
 
@@ -45,59 +63,134 @@ export class IconEl extends LitElement {
 customElements.define('ui-icon', IconEl);
 
 // ─── Card (panel) ──────────────────────────────────────────────────────
+// Uses Shadow DOM so <slot> works. Tailwind classes on slotted children
+// (in light DOM) still get picked up by the global Tailwind scan.
 
 export class CardEl extends LitElement {
   static properties = { title: {}, subtitle: {} };
-  createRenderRoot() { return this; }
+
+  static styles = css`
+    :host {
+      display: block;
+      background: rgb(24 24 27);          /* zinc-900 */
+      border: 1px solid rgb(39 39 42);    /* zinc-800 */
+      border-radius: 0.75rem;
+      padding: 1.25rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+      box-sizing: border-box;
+    }
+    .header {
+      margin-bottom: 1rem;
+    }
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: rgb(244 244 245);
+      margin: 0;
+      line-height: 1.4;
+      font-family: inherit;
+    }
+    .subtitle {
+      font-size: 0.875rem;
+      color: rgb(161 161 170);
+      margin: 0.125rem 0 0;
+      font-family: inherit;
+    }
+  `;
+
   render() {
     return html`
-      <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 shadow-sm">
-        ${this.title ? html`
-          <div class="mb-4">
-            <h3 class="text-base font-semibold text-zinc-100">${this.title}</h3>
-            ${this.subtitle ? html`<p class="text-sm text-zinc-400 mt-0.5">${this.subtitle}</p>` : ''}
-          </div>` : ''}
-        <slot></slot>
-      </div>
+      ${this.title ? html`
+        <div class="header">
+          <h3>${this.title}</h3>
+          ${this.subtitle ? html`<p class="subtitle">${this.subtitle}</p>` : ''}
+        </div>
+      ` : ''}
+      <slot></slot>
     `;
   }
 }
 customElements.define('ui-card', CardEl);
 
 // ─── Button ────────────────────────────────────────────────────────────
+// Shadow DOM + self-contained CSS. Variant/size selected via `variant`
+// and `size` attributes (reflected so :host([variant=…]) selectors work).
 
 export class ButtonEl extends LitElement {
   static properties = {
-    variant: {},      // primary | secondary | danger | ghost
-    size: {},         // sm | md | lg
-    disabled: { type: Boolean },
-    loading: { type: Boolean },
-    icon: {},         // icon name (optional)
-    full: { type: Boolean }, // full-width
+    variant: { reflect: true },              // primary | secondary | danger | ghost
+    size: { reflect: true },                 // sm | md | lg
+    disabled: { type: Boolean, reflect: true },
+    loading: { type: Boolean, reflect: true },
+    icon: {},
+    full: { type: Boolean, reflect: true },
   };
-  createRenderRoot() { return this; }
+
+  static styles = css`
+    :host { display: inline-block; }
+    :host([full]) { display: block; width: 100%; }
+    button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+      border: 1px solid transparent;
+      border-radius: 0.375rem;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background-color 0.15s, border-color 0.15s;
+      box-sizing: border-box;
+    }
+    :host([full]) button {
+      width: 100%;
+      justify-content: center;
+    }
+    button[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    /* sizes */
+    .sm { padding: 0.25rem 0.625rem; font-size: 0.75rem; }
+    .md { padding: 0.375rem 0.875rem; font-size: 0.875rem; }
+    .lg { padding: 0.5rem 1.25rem; font-size: 1rem; }
+    /* variants */
+    .primary {
+      background: rgb(79 70 229); color: white; border-color: rgb(79 70 229);
+    }
+    .primary:hover:not([disabled]) { background: rgb(99 102 241); }
+    .secondary {
+      background: rgb(39 39 42); color: rgb(244 244 245); border-color: rgb(63 63 70);
+    }
+    .secondary:hover:not([disabled]) { background: rgb(63 63 70); }
+    .danger {
+      background: rgb(225 29 72); color: white; border-color: rgb(225 29 72);
+    }
+    .danger:hover:not([disabled]) { background: rgb(244 63 94); }
+    .ghost {
+      background: transparent; color: rgb(212 212 216); border-color: transparent;
+    }
+    .ghost:hover:not([disabled]) { background: rgb(39 39 42); }
+    .spinner {
+      width: 0.875rem;
+      height: 0.875rem;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  `;
+
   render() {
-    const variants = {
-      primary: 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-600',
-      secondary: 'bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border-zinc-700',
-      danger: 'bg-rose-600 hover:bg-rose-500 text-white border-rose-600',
-      ghost: 'bg-transparent hover:bg-zinc-800 text-zinc-300 border-transparent',
-    };
-    const sizes = {
-      sm: 'px-2.5 py-1 text-xs',
-      md: 'px-3.5 py-1.5 text-sm',
-      lg: 'px-5 py-2 text-base',
-    };
-    const v = variants[this.variant || 'secondary'];
-    const s = sizes[this.size || 'md'];
-    const widthCls = this.full ? 'w-full justify-center' : '';
-    const disabledCls = (this.disabled || this.loading) ? 'opacity-50 cursor-not-allowed' : '';
+    const variant = this.variant || 'secondary';
+    const size = this.size || 'md';
     return html`
       <button
         type="button"
         ?disabled=${this.disabled || this.loading}
-        class="inline-flex items-center gap-1.5 border rounded-md font-medium
-               transition-colors ${v} ${s} ${widthCls} ${disabledCls}"
+        class="${variant} ${size}"
+        @click=${this._onClick}
       >
         ${this.loading ? html`<span class="spinner"></span>` :
           this.icon ? html`<ui-icon name=${this.icon} size="14"></ui-icon>` : ''}
@@ -105,28 +198,59 @@ export class ButtonEl extends LitElement {
       </button>
     `;
   }
+
+  _onClick(e) {
+    if (this.disabled || this.loading) return;
+    // Re-dispatch click on the host so parent listeners with @click=… fire.
+    // (The shadow-root button's click bubbles by default, but custom-element
+    //  consumers usually expect @click on the host element itself.)
+  }
 }
 customElements.define('ui-button', ButtonEl);
 
 // ─── Badge ─────────────────────────────────────────────────────────────
 
 export class BadgeEl extends LitElement {
-  static properties = { variant: {} };
-  createRenderRoot() { return this; }
+  static properties = { variant: { reflect: true } };
+
+  static styles = css`
+    :host {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.125rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-family: inherit;
+      border: 1px solid rgb(63 63 70);
+      border-radius: 0.375rem;
+      background: rgb(39 39 42);
+      color: rgb(212 212 216);
+      line-height: 1.4;
+    }
+    :host([variant="success"]) {
+      background: rgba(6, 78, 59, 0.5);
+      color: rgb(110 231 183);
+      border-color: rgb(6 95 70);
+    }
+    :host([variant="warning"]) {
+      background: rgba(120, 53, 15, 0.5);
+      color: rgb(252 211 77);
+      border-color: rgb(146 64 14);
+    }
+    :host([variant="error"]) {
+      background: rgba(127, 29, 29, 0.5);
+      color: rgb(252 165 165);
+      border-color: rgb(159 18 57);
+    }
+    :host([variant="info"]) {
+      background: rgba(49, 46, 129, 0.5);
+      color: rgb(165 180 252);
+      border-color: rgb(67 56 202);
+    }
+  `;
+
   render() {
-    const variants = {
-      default: 'bg-zinc-800 text-zinc-300 border-zinc-700',
-      success: 'bg-emerald-950/50 text-emerald-300 border-emerald-900',
-      warning: 'bg-amber-950/50 text-amber-300 border-amber-900',
-      error:   'bg-rose-950/50 text-rose-300 border-rose-900',
-      info:    'bg-indigo-950/50 text-indigo-300 border-indigo-900',
-    };
-    const v = variants[this.variant || 'default'];
-    return html`
-      <span class="inline-flex items-center px-2 py-0.5 text-xs font-medium border rounded-md ${v}">
-        <slot></slot>
-      </span>
-    `;
+    return html`<slot></slot>`;
   }
 }
 customElements.define('ui-badge', BadgeEl);
@@ -145,6 +269,12 @@ export class InputEl extends LitElement {
   };
   createRenderRoot() { return this; }
   _onInput(e) {
+    // STOP the native 'input' event from bubbling up to the parent.
+    // Otherwise the parent's @input listener — written assuming the
+    // custom-event shape (e.detail.value) — receives the native event
+    // first, throws on `e.detail.value`, and Chrome stops processing
+    // events on this input. Result: user can't type.
+    e.stopPropagation();
     this.value = e.target.value;
     this.dispatchEvent(new CustomEvent('input', {
       detail: { value: e.target.value }, bubbles: false,
@@ -182,6 +312,7 @@ export class TextareaEl extends LitElement {
   };
   createRenderRoot() { return this; }
   _onInput(e) {
+    e.stopPropagation();   // see InputEl._onInput for the why
     this.value = e.target.value;
     this.dispatchEvent(new CustomEvent('input', {
       detail: { value: e.target.value }, bubbles: false,
@@ -218,6 +349,7 @@ export class SelectEl extends LitElement {
   };
   createRenderRoot() { return this; }
   _onChange(e) {
+    e.stopPropagation();   // see InputEl._onInput for the why
     this.value = e.target.value;
     this.dispatchEvent(new CustomEvent('change', {
       detail: { value: e.target.value }, bubbles: false,

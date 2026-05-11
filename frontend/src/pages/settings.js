@@ -113,6 +113,18 @@ export class PageSettings extends LitElement {
     }
   }
 
+  async _browseDefaultFolder() {
+    try {
+      const r = await api.pickFolder();
+      if (r.path) {
+        this._draft.default_output_folder = r.path;
+        this.requestUpdate();
+      }
+    } catch (e) {
+      notify('error', `Folder picker failed: ${e.detail || e.message}`);
+    }
+  }
+
   async _updateHyperFrames() {
     if (!confirm('Update HyperFrames to the latest npm version?')) return;
     notify('info', 'Updating HyperFrames (npm install -g hyperframes@latest)…');
@@ -200,9 +212,14 @@ export class PageSettings extends LitElement {
 
         <ui-card title="Defaults" subtitle="Prefills for new jobs.">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ui-input label="Default output folder" .value=${d.default_output_folder || ''}
-              @input=${(e) => { d.default_output_folder = e.detail.value; this.requestUpdate(); }}
-              placeholder="C:\\Users\\you\\Videos"></ui-input>
+            <div class="flex items-end gap-2">
+              <div class="flex-1">
+                <ui-input label="Default output folder" .value=${d.default_output_folder || ''}
+                  @input=${(e) => { d.default_output_folder = e.detail.value; this.requestUpdate(); }}
+                  placeholder="C:\\Users\\you\\Videos"></ui-input>
+              </div>
+              <ui-button variant="secondary" @click=${() => this._browseDefaultFolder()}>Browse…</ui-button>
+            </div>
             <ui-select label="Default canvas" .value=${d.default_canvas_key}
               .options=${[
                 { value: 'shorts', label: '9:16 Shorts' },

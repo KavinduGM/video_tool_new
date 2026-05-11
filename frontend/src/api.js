@@ -74,6 +74,9 @@ export const api = {
   // Files / library
   listOutputFolder: (folder) => request('GET', `/api/files/output?folder=${encodeURIComponent(folder)}`),
   videoStreamUrl: (path) => `${API_BASE}/api/files/stream?path=${encodeURIComponent(path)}`,
+
+  // Native folder picker (opens a Windows Explorer dialog on the host).
+  pickFolder: () => request('POST', '/api/dialog/pick-folder'),
 };
 
 export { ApiError };

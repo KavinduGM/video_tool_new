@@ -63,6 +63,18 @@ export class PageLibrary extends LitElement {
     }
   }
 
+  async _browse() {
+    try {
+      const r = await api.pickFolder();
+      if (r.path) {
+        this._folder = r.path;
+        this._refresh();
+      }
+    } catch (e) {
+      notify('error', `Folder picker failed: ${e.detail || e.message}`);
+    }
+  }
+
   render() {
     return html`
       <header class="mb-8">
@@ -80,6 +92,7 @@ export class PageLibrary extends LitElement {
               placeholder="C:\\Users\\you\\Videos"
             ></ui-input>
           </div>
+          <ui-button variant="secondary" @click=${() => this._browse()}>Browse…</ui-button>
           <ui-button variant="primary" icon="refresh" @click=${() => this._refresh()} .loading=${this._loading}>
             Load
           </ui-button>

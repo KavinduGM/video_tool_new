@@ -111,6 +111,20 @@ export class PageNewJob extends LitElement {
     if (k === 'script') this._detectFormat(v);
   }
 
+  async _browseFolder() {
+    this._browsing = true;
+    this.requestUpdate();
+    try {
+      const r = await api.pickFolder();
+      if (r.path) this._set('output_folder', r.path);
+    } catch (e) {
+      notify('error', `Folder picker failed: ${e.detail || e.message}`);
+    } finally {
+      this._browsing = false;
+      this.requestUpdate();
+    }
+  }
+
   _detectFormat(text) {
     // Lightweight client-side guess; server has the real parser. We surface
     // a badge so the user knows what'll happen.
@@ -171,13 +185,24 @@ export class PageNewJob extends LitElement {
               @input=${(e) => this._set('title', e.detail.value)}
               placeholder="e.g. Rapid Tranquillisation"
             ></ui-input>
-            <ui-input
-              label="Output folder"
-              hint="Where the .mp4 lands. Windows path: C:\\Users\\you\\Videos"
-              .value=${this._form.output_folder}
-              @input=${(e) => this._set('output_folder', e.detail.value)}
-              placeholder="C:\\Users\\you\\Videos"
-            ></ui-input>
+            <div>
+              <div class="flex items-end gap-2">
+                <div class="flex-1">
+                  <ui-input
+                    label="Output folder"
+                    .value=${this._form.output_folder}
+                    @input=${(e) => this._set('output_folder', e.detail.value)}
+                    placeholder="C:\\Users\\you\\Videos"
+                  ></ui-input>
+                </div>
+                <ui-button
+                  variant="secondary"
+                  @click=${() => this._browseFolder()}
+                  .loading=${this._browsing}
+                >Browse…</ui-button>
+              </div>
+              <p class="text-xs text-zinc-500 mt-1">Where the .mp4 lands. Windows path: C:\\Users\\you\\Videos</p>
+            </div>
           </div>
         </ui-card>
 
